@@ -19,8 +19,7 @@ import { handleFirestoreError, OperationType } from './lib/firebaseUtils';
 
 export default function App() {
   const { user, loading: authLoading, login, logout, isAdmin: isUserAdmin, isLoggingIn } = useFirebase();
-  // FOR TESTING: Allow everyone to be admin
-  const effectiveIsAdmin = true; 
+  const effectiveIsAdmin = isUserAdmin; 
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [templateToEdit, setTemplateToEdit] = useState<Template | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);

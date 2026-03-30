@@ -1,8 +1,132 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: templates
+    // Document ID: {templateId}
+    // Fields:
+    //   - id: string (required)
+    //   - nome: string (required)
+    //   - categorias: list of strings
+    //   - largura: number (required)
+    //   - altura: number (required)
+    //   - elementos: list of objects (required)
+    //   - thumbnail: string
+    //   - createdAt: string (format: date-time)
+    //   - updatedAt: string (format: date-time)
+    //
+    // Collection: categories
+    // Document ID: {categoryId}
+    // Fields:
+    //   - id: string (required)
+    //   - nome: string (required)
+    //   - createdAt: string (format: date-time)
+    //
+    // Collection: fonts
+    // Document ID: {fontName}
+    // Fields:
+    //   - name: string (required)
+    //   - data: string (required, base64)
+    //   - createdAt: string (format: date-time)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "paerik@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidTemplate(data) {
+      return hasRequiredFields(['id', 'nome', 'largura', 'altura', 'elementos']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.nome is string && data.nome.size() > 0 && data.nome.size() < 100 &&
+             data.largura is number && data.largura > 0 &&
+             data.altura is number && data.altura > 0 &&
+             data.elementos is list && data.elementos.size() < 100 &&
+             (!('thumbnail' in data) || (data.thumbnail is string && data.thumbnail.size() < 1000000)) &&
+             (!('createdAt' in data) || isValidDateString(data.createdAt)) &&
+             (!('updatedAt' in data) || isValidDateString(data.updatedAt));
+    }
+
+    function isValidCategory(data) {
+      return hasRequiredFields(['id', 'nome']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.nome is string && data.nome.size() > 0 && data.nome.size() < 50 &&
+             (!('createdAt' in data) || isValidDateString(data.createdAt));
+    }
+
+    function isValidFont(data) {
+      return hasRequiredFields(['name', 'data']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             data.data is string && data.data.size() > 0 && data.data.size() < 5000000 &&
+             (!('createdAt' in data) || isValidDateString(data.createdAt));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /templates/{templateId} {
+      allow read: if true; // Publicly readable for users to customize
+      allow create: if isAdmin() && isValidTemplate(request.resource.data);
+      allow update: if isAdmin() && isValidTemplate(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidCategory(request.resource.data);
+      allow update: if isAdmin() && isValidCategory(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /fonts/{fontName} {
+      allow read: if true;
+      allow create: if isAdmin() && isValidFont(request.resource.data);
+      allow update: if isAdmin() && isValidFont(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && 
+                    hasOnlyAllowedFields(['role', 'email', 'name']) &&
+                    request.resource.data.role == 'user'; // Users can't make themselves admin
+      allow update: if isAdmin(); // Only admins can change roles
+    }
+
+    // Default deny
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
