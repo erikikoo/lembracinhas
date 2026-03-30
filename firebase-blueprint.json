@@ -1,0 +1,85 @@
+{
+  "entities": {
+    "Template": {
+      "title": "Template",
+      "description": "A layout template for custom souvenirs.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "categorias": { 
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "largura": { "type": "number" },
+        "altura": { "type": "number" },
+        "elementos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tipo": { "type": "string", "enum": ["texto", "imagem", "retangulo"] },
+              "campo": { "type": "string" },
+              "texto": { "type": "string" },
+              "left": { "type": "number" },
+              "top": { "type": "number" },
+              "fontSize": { "type": "number" },
+              "fontFamily": { "type": "string" },
+              "textAlign": { "type": "string" },
+              "fill": { "type": "string" },
+              "width": { "type": "number" },
+              "height": { "type": "number" },
+              "src": { "type": "string" },
+              "opacity": { "type": "number" },
+              "originX": { "type": "string" },
+              "originY": { "type": "string" },
+              "fontWeight": { "type": "string" },
+              "fontStyle": { "type": "string" },
+              "angle": { "type": "number" }
+            }
+          }
+        },
+        "thumbnail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nome", "largura", "altura", "elementos"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "A category for templates.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nome": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "nome"]
+    },
+    "Font": {
+      "title": "Font",
+      "description": "A custom font file stored as base64.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "data": { "type": "string", "description": "Base64 encoded font file data." },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "data"]
+    }
+  },
+  "firestore": {
+    "/templates/{templateId}": {
+      "schema": "Template",
+      "description": "Stores the available layout templates."
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Stores template categories."
+    },
+    "/fonts/{fontName}": {
+      "schema": "Font",
+      "description": "Stores custom fonts uploaded by the admin."
+    }
+  }
+}
